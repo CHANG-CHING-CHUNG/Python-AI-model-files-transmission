@@ -3,6 +3,7 @@ Server receiver of the file
 """
 import socket
 import os
+import json
 
 # device's IP address
 SERVER_HOST = "0.0.0.0"
@@ -33,18 +34,20 @@ def save_h5_file(client_socket):
     chunk = client_socket.recv(CHUNK_SIZE) 
     file.write(chunk)
 
+def save_json_file(client_socket):
+  CHUNK_SIZE = 8 * 1024
+  chunk = client_socket.recv(CHUNK_SIZE).decode('utf-8')
+  chunk = json.loads(chunk)
+  with open("test1.json", "w") as file:
+    json.dump(chunk, file)
+
 def receive_file():
   while True:
     # accept connection if there is any
     client_socket, address = s.accept() 
     # if below code is executed, that means the sender is connected
     print(f"[+] {address} is connected.")
-    CHUNK_SIZE = 8 * 1024
-    chunk = client_socket.recv(CHUNK_SIZE)
-    file = open('test1.h5','wb')
-    while chunk:
-      chunk = client_socket.recv(CHUNK_SIZE) 
-      print(chunk)
+    save_h5_file(client_socket)
     # close the client socket
     client_socket.close()
     # close the server socket

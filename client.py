@@ -5,6 +5,8 @@ import socket
 from os import walk
 import re
 import json
+import h5py
+import numpy as np
 SEPARATOR = "<SEPARATOR>"
 
 BUFFER_SIZE = 1024 * 4
@@ -27,10 +29,17 @@ def get_all_AI_filenames(directory_path):
 
   return AI_file_list
 
-def open_and_send_file(file_to_be_sent,socket):
+def open_and_send_h5_file(file_to_be_sent,socket):
   with open(file_to_be_sent, 'rb') as file:
     total_bytes = socket.sendfile(file)
     print(total_bytes)
+
+def open_and_sned_json_file(file_to_be_sent,socket):
+    file = open(file_to_be_sent)
+    json_data = json.load(file)
+    json_str = json.dumps(json_data)
+    print(json_str)
+    total_bytes = socket.sendall(bytes(json_str,encoding='utf-8'))
 
 def send_file(host, port):
     # create the client socket
@@ -39,14 +48,8 @@ def send_file(host, port):
     s.connect((host, port))
     print("[+] Connected.")
     AI_file_list = get_all_AI_filenames(DIRECTORY_PATH)
-    file_to_be_sent = AI_file_list[4]['path'] + "/" + AI_file_list[4]['filename']
-
-    file = open(file_to_be_sent)
-    json_data = json.load(file)
-    json_str = json.dumps(json_data)
-    print(json_str)
-    total_bytes = s.sendall(bytes(json_str,encoding='utf-8'))
-    print(total_bytes)
+    file_to_be_sent = AI_file_list[0]['path'] + "/" + AI_file_list[0]['filename']
+    print(file_to_be_sent)
     # with open(file_to_be_sent, 'rb') as file:
     #   total_bytes = s.sendfile(file)
     #   print(total_bytes)
