@@ -49,7 +49,7 @@ def send_file(host, port):
     print("[+] Connected.")
     AI_file_list = get_all_AI_filenames(DIRECTORY_PATH)
     file_to_be_sent = AI_file_list[0]['path'] + "/" + AI_file_list[0]['filename']
-    print(file_to_be_sent)
+    open_and_send_h5_file(file_to_be_sent,s)
     # with open(file_to_be_sent, 'rb') as file:
     #   total_bytes = s.sendfile(file)
     #   print(total_bytes)

@@ -21,4 +21,6 @@ def h5dump(path,group='/'):
     with h5py.File(path,'r') as f:
         descend_obj(f[group])
 
-h5dump("/home/john/桌面/工作/測試/AI_model_transmission/AI_model_files/z_2021-06-23_z/1/z_2021-06-23_z.h5")
+source_path = "/home/john/桌面/工作/測試/AI_model_transmission/AI_model_files/z_2021-06-23_z/1/z_2021-06-23_z.h5"
+h5dump("test1.h5")
+# h5dump(source_path)

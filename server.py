@@ -4,6 +4,7 @@ Server receiver of the file
 import socket
 import os
 import json
+import h5py
 
 # device's IP address
 SERVER_HOST = "0.0.0.0"
@@ -30,9 +31,12 @@ def save_h5_file(client_socket):
   CHUNK_SIZE = 8 * 1024
   chunk = client_socket.recv(CHUNK_SIZE)
   file = open('test1.h5','wb')
+  file.write(chunk)
   while chunk:
     chunk = client_socket.recv(CHUNK_SIZE) 
     file.write(chunk)
+  file.close()
+
 
 def save_json_file(client_socket):
   CHUNK_SIZE = 8 * 1024
