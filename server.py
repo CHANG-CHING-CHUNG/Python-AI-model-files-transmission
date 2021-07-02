@@ -4,21 +4,19 @@ Server receiver of the file
 import socket
 import os
 import json
-import h5py
-import select
+import struct
+import pathlib
+import re
+
 
 # device's IP address
 SERVER_HOST = "0.0.0.0"
 SERVER_PORT = 5001
 
-# receive 4096 bytes each time
-BUFFER_SIZE = 4096
-
-SEPARATOR = "<SEPARATOR>"
-
 # create the server socket
 # TCP socket
 s = socket.socket()
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 # bind the socket to our local address
 s.bind((SERVER_HOST, SERVER_PORT))
 # enabling our server to accept connections
@@ -28,84 +26,94 @@ s.listen(5)
 print(f'[*] Listening as {SERVER_HOST}:{SERVER_PORT }')
 
 
-def save_h5_and_h5last_file(client_socket,file_format):
+def save_h5_and_h5last_file(client_socket,file_format, save_file_path):
   CHUNK_SIZE = 8 * 1024
   if file_format == '.h5':
-    file = open('test2.h5','wb')
+    file = open(save_file_path,'wb')
   elif file_format == '.h5last':
-    file = open('test2.h5last','wb')
-  client_socket.settimeout(1)
-  while True:
-    try:
-      chunk = client_socket.recv(CHUNK_SIZE)
-    except:
+    file = open(save_file_path,'wb')
+  bs = client_socket.recv(8)
+  (length,) = struct.unpack('>Q',bs)
+  print(length)
+  data = b''
+  while len(data) < length:
+    to_read = int(length) - int(len(data))
+    data += client_socket.recv(min(CHUNK_SIZE, to_read))
+    if to_read == 0:
       break
-    file.write(chunk)
+  client_socket.sendall(b'\00')
+  file.write(data)
   file.close()
 
-def save_log_file(client_socket):
+def save_log_file(client_socket,save_file_path):
     CHUNK_SIZE = 8 * 1024
-    file = open('test3.log','wb')
-    client_socket.settimeout(1)
-    while True:
-      try:
-        chunk = client_socket.recv(CHUNK_SIZE)
-      except:
+    file = open(save_file_path,'wb')
+    bs = client_socket.recv(8)
+    (length,) = struct.unpack('>Q',bs)
+    data = b''
+    print(length)
+    while len(data) < length:
+      to_read = int(length) - int(len(data))
+      data += client_socket.recv(min(CHUNK_SIZE, to_read))
+      if to_read == 0:
         break
-      file.write(chunk)
+    client_socket.sendall(b'\00')
+    file.write(data)
     file.close()
 
-def save_csv_file(client_socket):
+def save_csv_file(client_socket,save_file_path):
     CHUNK_SIZE = 8 * 1024
-    file = open('test4.csv','wb')
-    client_socket.settimeout(1)
-    while True:
-      try:
-        chunk = client_socket.recv(CHUNK_SIZE)
-      except:
+    file = open(save_file_path,'wb')
+    bs = client_socket.recv(8)
+    (length,) = struct.unpack('>Q',bs)
+    data = b''
+    print(length)
+    while len(data) < length:
+      to_read = int(length) - int(len(data))
+      data += client_socket.recv(min(CHUNK_SIZE, to_read))
+      if to_read == 0:
         break
-      file.write(chunk)
-  
+    client_socket.sendall(b'\00')
+    file.write(data)
     file.close()
 
-def save_json_file(client_socket):
+def save_json_file(client_socket,save_file_path):
     CHUNK_SIZE = 8 * 1024
-    data = ""
-    client_socket.settimeout(1)
-    while True:
-      try:
-        chunk = client_socket.recv(CHUNK_SIZE).decode('utf-8')
-      except:
+    file = open(save_file_path,'wb')
+    bs = client_socket.recv(8)
+    (length,) = struct.unpack('>Q',bs)
+    data = b''
+    print(length)
+    while len(data) < length:
+      to_read = int(length) - int(len(data))
+      data += client_socket.recv(min(CHUNK_SIZE, to_read))
+      if to_read == 0:
         break
-      data = data + chunk
-    if data:
-      json_data = json.loads(data)
-      with open("test1.json", "w") as file:
-        json.dump(json_data, file)
+    client_socket.sendall(b'\00')
+    file.write(data)
+
+
+
+def receive_AI_files(client_socket,save_file_path):
+    save_h5_and_h5last_file(client_socket,".h5",save_file_path)
+    save_log_file(client_socket,save_file_path)
+    save_h5_and_h5last_file(client_socket,".h5last",save_file_path)
+    save_csv_file(client_socket,save_file_path)
+    save_json_file(client_socket,save_file_path)
 
 def receive_AI_file_json_list(client_socket):
-    CHUNK_SIZE = 8 * 1024
-    data = ""
-    client_socket.settimeout(1)
-    while True:
-      try:
-        chunk = client_socket.recv(CHUNK_SIZE).decode("utf-8")
-      except:
+    bs = client_socket.recv(8)
+    (length,) = struct.unpack('>Q',bs)
+    data = b''
+    print(length)
+    while len(data) < length:
+      to_read = int(length) - int(len(data))
+      data += client_socket.recv(min(8 * 1024, to_read))
+      if to_read == 0:
         break
-      data  = data + chunk
-    json_data_list = json.loads(data)
-    return json_data_list
-
-def receive_file_size(client_socket):
-    data = ""
-    client_socket.settimeout(1)
-    while True:
-      try:
-        chunk = client_socket.recv(1024).decode("utf-8")
-        data = data + chunk
-      except:
-        break
-    return data
+    AI_file_json_list = json.loads(data.decode("utf-8"))
+    client_socket.sendall(b'\00')
+    return AI_file_json_list
 
 def receive_file():
   while True:
@@ -113,18 +121,25 @@ def receive_file():
     client_socket, address = s.accept() 
     # if below code is executed, that means the sender is connected
     print(f"[+] {address} is connected.")
-    # Ai_file_list = receive_AI_file_json_list(client_socket)
-    # print(Ai_file_list)
-    save_h5_and_h5last_file(client_socket,".h5")
-    client_socket.sendall("ok".encode("utf-8"))
-    save_log_file(client_socket)
-    client_socket.sendall("ok".encode("utf-8"))
-    save_h5_and_h5last_file(client_socket,".h5last")
-    client_socket.sendall("ok".encode("utf-8"))
-    save_csv_file(client_socket)
-    client_socket.sendall("ok".encode("utf-8"))
-    save_json_file(client_socket)
-    client_socket.sendall("ok".encode("utf-8"))
+
+    target_dir_path = "/home/john/桌面/工作/測試/AI_model_transmission/dist"
+    AI_file_json_list = receive_AI_file_json_list(client_socket)
+    for AI_file in AI_file_json_list:
+      sub_dir = AI_file['path'].split("/")[-1]
+      target_dir_full_path = os.path.join(target_dir_path,sub_dir)
+      path = pathlib.Path(target_dir_full_path)
+      path.mkdir(parents=True, exist_ok=True)
+      save_file_path = os.path.join(target_dir_full_path, AI_file["filename"])
+      if len(re.findall(".h5$",AI_file["filename"])):
+        save_h5_and_h5last_file(client_socket,".h5",save_file_path)
+      elif len(re.findall(".log$",AI_file["filename"])):
+        save_log_file(client_socket,save_file_path)
+      elif len(re.findall(".h5last$",AI_file["filename"])):
+        save_h5_and_h5last_file(client_socket,".h5last",save_file_path)
+      elif len(re.findall(".csv$",AI_file["filename"])):
+        save_csv_file(client_socket,save_file_path)
+      elif len(re.findall(".json$",AI_file["filename"])):
+        save_json_file(client_socket,save_file_path)
 
 
     # client_socket.sendall("success".encode("utf-8"))
