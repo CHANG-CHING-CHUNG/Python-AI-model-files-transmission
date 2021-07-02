@@ -3,9 +3,11 @@ Client that sends the file (uploads)
 """
 import socket
 from os import walk, path
+import os
 import re
 import json
 import struct
+import binascii
 
 DIRECTORY_PATH = "/home/john/桌面/工作/測試/AI_model_transmission/AI_model_files/z_2021-06-23_z/1"
 
@@ -67,13 +69,21 @@ def open_and_send_json_file(file_to_be_sent,socket):
 
 def send_AI_file_list(DIRECTORY_PATH,socket):
     AI_file_list = get_all_AI_filenames(DIRECTORY_PATH)
-    AI_file_list_json_str = json.dumps(AI_file_list)
+    AI_file_list_with_crc = cal_file_crc(AI_file_list)
+    AI_file_list_json_str = json.dumps(AI_file_list_with_crc)
+    print(AI_file_list_json_str)
     length = struct.pack('>Q',len(AI_file_list_json_str.encode("utf-8")))
     socket.sendall(length)
     socket.sendall(AI_file_list_json_str.encode("utf-8"))
     response = socket.recv(1)
     return response
 
+def cal_file_crc(AI_file_list):
+    for AI_file in AI_file_list:
+      file_full_path = os.path.join(AI_file["path"], AI_file["filename"])
+      checksum = crc32(file_full_path)
+      AI_file["checksum"] = checksum
+    return AI_file_list
 
 def send_AI_files(DIRECTORY_PATH,socket):
     AI_file_list = get_all_AI_filenames(DIRECTORY_PATH)
@@ -97,6 +107,11 @@ def send_AI_files(DIRECTORY_PATH,socket):
         open_and_send_json_file(AI_file_path,socket)
       if response != b'\x00':
         return False
+
+def crc32(filename):
+    buf = open(filename,'rb').read()
+    hash = binascii.crc32(buf) & 0xFFFFFFFF
+    return "%08X" % hash
 
 def send_file(host, port):
     # create the client socket

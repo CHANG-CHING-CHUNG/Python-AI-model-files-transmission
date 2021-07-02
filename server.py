@@ -7,6 +7,8 @@ import json
 import struct
 import pathlib
 import re
+import binascii
+
 
 
 # device's IP address
@@ -43,6 +45,7 @@ def save_h5_and_h5last_file(client_socket,file_format, save_file_path):
       break
   client_socket.sendall(b'\00')
   file.write(data)
+  print(crc32(save_file_path))
   file.close()
 
 def save_log_file(client_socket,save_file_path):
@@ -115,6 +118,13 @@ def receive_AI_file_json_list(client_socket):
     client_socket.sendall(b'\00')
     return AI_file_json_list
 
+
+def crc32(filename):
+    buf = open(filename,'rb').read()
+    hash = binascii.crc32(buf) & 0xFFFFFFFF
+    return "%08X" % hash
+
+
 def receive_file():
   while True:
     # accept connection if there is any
@@ -124,6 +134,7 @@ def receive_file():
 
     target_dir_path = "/home/john/桌面/工作/測試/AI_model_transmission/dist"
     AI_file_json_list = receive_AI_file_json_list(client_socket)
+    print(AI_file_json_list)
     for AI_file in AI_file_json_list:
       sub_dir = AI_file['path'].split("/")[-1]
       target_dir_full_path = os.path.join(target_dir_path,sub_dir)
@@ -140,7 +151,6 @@ def receive_file():
         save_csv_file(client_socket,save_file_path)
       elif len(re.findall(".json$",AI_file["filename"])):
         save_json_file(client_socket,save_file_path)
-
 
     # client_socket.sendall("success".encode("utf-8"))
     # close the client socket
