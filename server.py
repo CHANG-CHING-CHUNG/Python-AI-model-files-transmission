@@ -29,8 +29,7 @@ def receive__AI_files_wrapper():
     print(result)
 
     client_socket.close()
-    s.close()
-    
+
     print(f"[+] {address} has benn disconnected.")
 
 receive__AI_files_wrapper()
