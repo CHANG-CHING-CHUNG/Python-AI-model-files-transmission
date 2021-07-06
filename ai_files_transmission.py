@@ -148,4 +148,6 @@ class AiFIlesTransmission:
         if not result:
           return result
 
+      client_socket.close()
+
       return result

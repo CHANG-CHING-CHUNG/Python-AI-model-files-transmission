@@ -5,7 +5,7 @@ import socket
 from ai_files_transmission import AiFIlesTransmission
 
 
-DIRECTORY_PATH = "/home/john/桌面/工作/測試/AI_model_transmission/AI_model_files/z_2021-06-23_z/1"
+DIRECTORY_PATH2 = "/home/john/桌面/工作/測試/AI_model_transmission/AI_model_files/z_2021-07-03_z/2"
 
 
 def send_AI_files_wrapper(host, port):
@@ -16,7 +16,7 @@ def send_AI_files_wrapper(host, port):
     print("[+] Connected.")
 
     ai_files_transmission = AiFIlesTransmission()
-    result = ai_files_transmission.start_sending_AI_files(DIRECTORY_PATH,s)
+    result = ai_files_transmission.start_sending_AI_files(DIRECTORY_PATH2,s)
     print(result)
 
     s.close()
