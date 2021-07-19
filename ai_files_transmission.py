@@ -194,7 +194,7 @@ class AiFIlesTransmission:
           print("something went wrong")
           return False
 
-      result = None
+      result = True
       for AI_file in new_AI_file_json_list:
         sub_dir = AI_file['path'].split("/")[-1]
         target_dir_full_path = os.path.join(target_dir_path,sub_dir)
