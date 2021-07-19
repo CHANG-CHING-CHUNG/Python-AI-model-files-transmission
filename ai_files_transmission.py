@@ -51,10 +51,9 @@ class AiFIlesTransmission:
         AI_file["checksum"] = checksum
       return AI_file_list
 
-  def send_AI_files(self, DIRECTORY_PATH,socket):
+  def send_AI_files(self, updated_AI_file_json_list,socket):
       response = None
-      AI_file_list = self.get_all_AI_filenames(DIRECTORY_PATH)
-      for AI_file in AI_file_list:
+      for AI_file in updated_AI_file_json_list:
         AI_file_path = os.path.join(AI_file["path"],AI_file["filename"])
         if len(re.findall(".h5$",AI_file["filename"])):
           response = self.open_and_send_AI_files(AI_file_path,socket)
@@ -77,12 +76,27 @@ class AiFIlesTransmission:
       hash = binascii.crc32(buf) & 0xFFFFFFFF
       return "%08X" % hash
 
+  def receive_updated_AI_file_list(self,client_socket):
+      bs = client_socket.recv(8)
+      (length,) = struct.unpack('>Q',bs)
+      data = b''
+      while len(data) < length:
+        to_read = int(length) - int(len(data))
+        if to_read == 0:
+          break
+        data += client_socket.recv(min(8 * 1024, to_read))
+      AI_file_json_list = json.loads(data.decode("utf-8"))
+      client_socket.sendall(b'\x00')
+      return AI_file_json_list
+
   def start_sending_AI_files(self, DIRECTORY_PATH, socket):
       response = self.send_AI_file_list(DIRECTORY_PATH,socket)
       if response == b'\x01':
         print("something went wrong")
         return False
-      result = self.send_AI_files(DIRECTORY_PATH,socket)
+      updated_AI_file_json_list = self.receive_AI_file_json_list(socket)
+      print(updated_AI_file_json_list)
+      result = self.send_AI_files(updated_AI_file_json_list,socket)
 
       if not result:
         print("something went wrong")
@@ -124,11 +138,64 @@ class AiFIlesTransmission:
       client_socket.sendall(b'\x00')
       return AI_file_json_list
 
+  def remove_repeated_AI_files_from_list(self, target_dir_path, AI_file_json_list):
+    local_AI_files = self.get_all_AI_filenames(target_dir_path)
+    new_AI_file_json_list = self.remove_repeated_AI_file_from_list_helper(AI_file_json_list, local_AI_files)
+    return new_AI_file_json_list
+
+  def check_repeated_ai_files(self,ai_file, repeated_AI_file_list):
+    for repeated_ai_file in repeated_AI_file_list:
+      if ai_file["filename"] == repeated_ai_file["filename"]:
+        return True
+    return False
+
+  
+  def remove_repeated_AI_file_from_list_helper(self,AI_file_json_list, local_AI_files):
+    repeated_AI_file_list = self.filtered_AI_files(AI_file_json_list, local_AI_files, "repeated AI files")
+    new_AI_file_list = []
+    for ai_file in AI_file_json_list:
+      is_repeated = self.check_repeated_ai_files(ai_file, repeated_AI_file_list)
+      if not is_repeated:
+        new_AI_file_list.append(ai_file)
+    
+    return new_AI_file_list
+
+  def filtered_AI_files(self,AI_file_json_list, local_AI_files, condition_str):
+    condition_list = ["repeated AI files"]
+    filtered_AI_file_list = []
+
+    for local_AI_file in local_AI_files:
+      is_valid = False
+      for remote_AI_file in AI_file_json_list:
+        if local_AI_file['filename'] == remote_AI_file['filename']:
+          is_valid = True
+          break
+      if condition_str == condition_list[0] and is_valid:
+          filtered_AI_file_list.append(local_AI_file)
+
+    return filtered_AI_file_list
+
+  def send_back_new_AI_file_json_list(self,new_AI_file_json_list, client_socket):
+      print("send_back_new_AI_file_json_list",new_AI_file_json_list)
+      new_AI_file_list_json_str = json.dumps(new_AI_file_json_list)
+      length = struct.pack('>Q',len(new_AI_file_list_json_str.encode("utf-8")))
+      client_socket.sendall(length)
+      client_socket.sendall(new_AI_file_list_json_str.encode("utf-8"))
+      response = client_socket.recv(1)
+      return response
+
 
   def receive_AI_files(self, target_dir_path,client_socket):
       AI_file_json_list = self.receive_AI_file_json_list(client_socket)
+      new_AI_file_json_list = self.remove_repeated_AI_files_from_list(target_dir_path, AI_file_json_list)
+      response = self.send_back_new_AI_file_json_list(new_AI_file_json_list, client_socket)
+
+      if response != b'\x00':
+          print("something went wrong")
+          return False
+
       result = None
-      for AI_file in AI_file_json_list:
+      for AI_file in new_AI_file_json_list:
         sub_dir = AI_file['path'].split("/")[-1]
         target_dir_full_path = os.path.join(target_dir_path,sub_dir)
         path = pathlib.Path(target_dir_full_path)

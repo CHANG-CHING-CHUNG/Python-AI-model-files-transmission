@@ -27,9 +27,9 @@ def send_AI_files_wrapper(host, port, path):
 
     s.close()
 
-# send_AI_files_wrapper("0.0.0.0",5001)
-t1 = threading.Thread(target=send_AI_files_wrapper, args=("0.0.0.0",5001, DIRECTORY_PATH)).start()
-t2 = threading.Thread(target=send_AI_files_wrapper, args=("0.0.0.0",5001, DIRECTORY_PATH2)).start()
-t3 = threading.Thread(target=send_AI_files_wrapper, args=("0.0.0.0",5001, DIRECTORY_PATH3)).start()
+send_AI_files_wrapper("0.0.0.0",5001,DIRECTORY_PATH)
+# t1 = threading.Thread(target=send_AI_files_wrapper, args=("0.0.0.0",5001, DIRECTORY_PATH)).start()
+# t2 = threading.Thread(target=send_AI_files_wrapper, args=("0.0.0.0",5001, DIRECTORY_PATH2)).start()
+# t3 = threading.Thread(target=send_AI_files_wrapper, args=("0.0.0.0",5001, DIRECTORY_PATH3)).start()
 
 

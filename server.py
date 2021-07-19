@@ -26,7 +26,7 @@ def receive__AI_files_wrapper():
     target_dir_path = "/home/john/桌面/工作/測試/AI_model_transmission/dist"
     ai_files_transmission = AiFIlesTransmission()
     result = ai_files_transmission.receive_AI_files(target_dir_path,client_socket)
-    print(result)
+    print("result",result)
 
     client_socket.close()
 
