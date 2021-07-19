@@ -27,6 +27,5 @@ def run_receive_model():
                 client, addr = sck.accept()
                 clients.append(client)
                 t1 = threading.Thread(target=AiFIlesTransmission().receive_AI_files, args=(path,client)).start()
-                t1.join()
 
 run_receive_model()
