@@ -176,7 +176,6 @@ class AiFIlesTransmission:
     return filtered_AI_file_list
 
   def send_back_new_AI_file_json_list(self,new_AI_file_json_list, client_socket):
-      print("send_back_new_AI_file_json_list",new_AI_file_json_list)
       new_AI_file_list_json_str = json.dumps(new_AI_file_json_list)
       length = struct.pack('>Q',len(new_AI_file_list_json_str.encode("utf-8")))
       client_socket.sendall(length)
